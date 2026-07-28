@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SunStride Smart Station - Live Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #10b981;
+      --accent-solar: #f59e0b;
+      --accent-piezo: #06b6d4;
+      --alert-red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .dashboard-container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 18px 20px;
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    .brand p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Main Bus Arrival Card */
+    .bus-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .bus-card.arrived {
+      border-color: var(--accent-green);
+      background: linear-gradient(180deg, #064e3b 0%, var(--card-bg) 100%);
+    }
+
+    .bus-status-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .bus-main-display {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .bus-main-display.active {
+      color: var(--accent-green);
+    }
+
+    .bus-id {
+      display: inline-block;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: rgba(255,255,255,0.08);
+      padding: 6px 16px;
+      border-radius: 8px;
+      color: var(--text-main);
+      margin-top: 6px;
+    }
+
+    .sensor-distance {
+      margin-top: 14px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Energy Telemetry Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 18px;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .metric-solar .metric-value { color: var(--accent-solar); }
+    .metric-piezo .metric-value { color: var(--accent-piezo); }
+    .metric-total .metric-value { color: var(--accent-green); }
+
+    .progress-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    /* Cumulative Energy Box */
+    .total-energy-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 20px;
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Simulation Control Panel */
+    .sim-panel {
+      margin-top: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px dashed var(--card-border);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .sim-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .sim-btn {
+      background: var(--accent-green);
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin: 4px;
+    }
+
+    .sim-btn.secondary {
+      background: rgba(255,255,255,0.1);
+      color: var(--text-main);
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-container">
+    
+    <header>
+      <div class="brand">
+        <h1>SunStride Smart Station</h1>
+        <p>Piezo-Solar IoT Real-Time Telemetry</p>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>LIVE IoT ONLINE</span>
+      </div>
+    </header>
+
+    <div class="bus-card" id="busCard">
+      <div class="bus-status-title">Platform Status</div>
+      <div class="bus-main-display" id="busStatusText">BAY CLEAR</div>
+      <div class="bus-id" id="busIdText">Waiting for Next Bus...</div>
+      <div class="sensor-distance">Proximity Sensor: <span id="distanceText">15.0</span> cm</div>
+    </div>
+
+    <div class="metrics-grid">
+      
+      <div class="metric-card metric-solar">
+        <div class="metric-header">
+          <span>Solar Harvest</span>
+          <span>☀️</span>
+        </div>
+        <div class="metric-value"><span id="solarVal">240</span> <span style="font-size:1rem">mW</span></div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="solarBar" style="width: 60%; background: var(--accent-solar);"></div>
+        </div>
+      </div>
+
+      <div class="metric-card metric-piezo">
+        <div class="metric-header">
+          <span>Piezo Footstep Harvest</span>
+          <span>👟</span>
+        </div>
+        <div class="metric-value"><span id="piezoVal">85</span> <span style="font-size:1rem">mW</span></div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="piezoBar" style="width: 30%; background: var(--accent-piezo);"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="total-energy-card">
+      <div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Cumulative Energy Consumed</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:2px;">(Since System Boot)</div>
+      </div>
+      <div style="font-size: 1.8rem; font-weight: 700; color: var(--accent-green);">
+        <span id="totalEnergyVal">1240.5</span> <span style="font-size: 1rem;">mWh</span>
+      </div>
+    </div>
+
+    <div class="sim-panel">
+      <div class="sim-title">Exhibition Demo Controls (Simulate Hardware Inputs)</div>
+      <button class="sim-btn" onclick="simulateBusArrival()">Simulate Bus Arrival (< 8 cm)</button>
+      <button class="sim-btn secondary" onclick="simulateBusDeparture()">Clear Bay (> 8 cm)</button>
+      <button class="sim-btn secondary" onclick="pulsePiezo()">Simulate Footstep Pulse</button>
+    </div>
+
+  </div>
+
+  <script>
+    // System State Variables
+    let solarPower = 240;
+    let piezoPower = 85;
+    let cumulativeEnergy = 1240.5;
+    let isBusPresent = false;
+
+    // DOM Elements
+    const busCard = document.getElementById('busCard');
+    const busStatusText = document.getElementById('busStatusText');
+    const busIdText = document.getElementById('busIdText');
+    const distanceText = document.getElementById('distanceText');
+    const solarVal = document.getElementById('solarVal');
+    const piezoVal = document.getElementById('piezoVal');
+    const solarBar = document.getElementById('solarBar');
+    const piezoBar = document.getElementById('piezoBar');
+    const totalEnergyVal = document.getElementById('totalEnergyVal');
+
+    // Simulate Bus Arrival Logic (< 8cm)
+    function simulateBusArrival() {
+      isBusPresent = true;
+      const distance = (Math.random() * 4 + 2).toFixed(1); // 2.0cm to 6.0cm
+      const randomBusNum = Math.floor(Math.random() * 899) + 100;
+      
+      distanceText.innerText = distance;
+      busStatusText.innerText = "BUS ARRIVED!";
+      busStatusText.classList.add('active');
+      busIdText.innerText = `Route #JNV-EXPRESS-${randomBusNum}`;
+      busCard.classList.add('arrived');
+    }
+
+    // Simulate Bus Departure Logic (> 8cm)
+    function simulateBusDeparture() {
+      isBusPresent = false;
+      const distance = (Math.random() * 15 + 12).toFixed(1); // 12.0cm to 27.0cm
+      
+      distanceText.innerText = distance;
+      busStatusText.innerText = "BAY CLEAR";
+      busStatusText.classList.remove('active');
+      busIdText.innerText = "Waiting for Next Bus...";
+      busCard.classList.remove('arrived');
+    }
+
+    // Simulate Footstep Impact on Piezo Tile
+    function pulsePiezo() {
+      piezoPower = Math.floor(Math.random() * 80) + 120; // Spike in mW
+      piezoVal.innerText = piezoPower;
+      piezoBar.style.width = Math.min((piezoPower / 250) * 100, 100) + '%';
+      
+      // Decay back to normal baseline
+      setTimeout(() => {
+        piezoPower = 45;
+        piezoVal.innerText = piezoPower;
+        piezoBar.style.width = '20%';
+      }, 1200);
+    }
+
+    // Background loop updating energy accumulation & natural solar fluctuations
+    setInterval(() => {
+      // Natural slight solar variance
+      solarPower = Math.floor(230 + Math.sin(Date.now() / 1000) * 20);
+      solarVal.innerText = solarPower;
+      solarBar.style.width = Math.min((solarPower / 400) * 100, 100) + '%';
+
+      // Increment cumulative energy
+      const liveDraw = (solarPower + piezoPower) * 0.00005;
+      cumulativeEnergy += liveDraw;
+      totalEnergyVal.innerText = cumulativeEnergy.toFixed(1);
+    }, 1000);
+
+    /* NOTE FOR HARDWARE INTEGRATION:
+      To link live NodeMCU data, fetch from '/data' endpoint:
+      
+      setInterval(async () => {
+        try {
+          const res = await fetch('/data');
+          const data = await res.json();
+          // Update solarPower, piezoPower, and distanceText from response
+        } catch(e) {}
+      }, 500);
+    */
+  </script>
+</body>
+</html>

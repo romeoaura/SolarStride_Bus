@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SunStride Smart Station - Live Dashboard</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-green: #16a34a;
+      --accent-green-light: #f0fdf4;
+      --accent-orange: #ea580c;
+      --accent-orange-light: #fff7ed;
+      --accent-piezo: #0284c7;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .dashboard-container {
+      width: 100%;
+      max-width: 850px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Top Header */
+    header {
+      background: var(--card-bg);
+      border: 2px solid var(--accent-green);
+      padding: 20px 24px;
+      border-radius: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .brand h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent-green-light);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Bus Visualizer Platform Card */
+    .bus-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bus-card.arrived {
+      border-color: var(--accent-green);
+      background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+    }
+
+    .platform-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .bus-status-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .sensor-distance {
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--bg);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--card-border);
+    }
+
+    /* Animated Visual Track */
+    .track-container {
+      height: 70px;
+      background: #f1f5f9;
+      border-radius: 12px;
+      border: 2px dashed #cbd5e1;
+      margin: 12px 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .visual-bus {
+      font-size: 2.5rem;
+      position: absolute;
+      left: -60px;
+      transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+
+    .visual-bus.in-station {
+      left: calc(50% - 24px);
+    }
+
+    .bus-info-group {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .bus-main-display {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+
+    .bus-main-display.active {
+      color: var(--accent-green);
+    }
+
+    .bus-id-badge {
+      display: inline-block;
+      font-size: 1rem;
+      font-weight: 700;
+      background: var(--accent-orange-light);
+      color: var(--accent-orange);
+      border: 1px solid var(--accent-orange);
+      padding: 6px 18px;
+      border-radius: 8px;
+      margin-top: 6px;
+    }
+
+    /* Metrics Dual Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      padding: 20px;
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .metric-card.solar { border-top: 5px solid var(--accent-orange); }
+    .metric-card.piezo { border-top: 5px solid var(--accent-piezo); }
+
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 800;
+    }
+
+    .metric-card.solar .metric-value { color: var(--accent-orange); }
+    .metric-card.piezo .metric-value { color: var(--accent-piezo); }
+
+    .progress-bar {
+      height: 10px;
+      background: #f1f5f9;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.4s ease;
+    }
+
+    /* Cumulative Energy Box */
+    .total-energy-card {
+      background: var(--card-bg);
+      border: 2px solid var(--accent-green);
+      padding: 20px 24px;
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(90deg, #ffffff 0%, var(--accent-green-light) 100%);
+    }
+
+    .total-energy-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .total-energy-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .total-energy-value {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--accent-green);
+    }
+
+    /* Controls for Presentation */
+    .sim-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 16px;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .sim-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .sim-btn {
+      background: var(--accent-green);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin: 4px;
+      box-shadow: 0 4px 10px rgba(22, 163, 74, 0.2);
+    }
+
+    .sim-btn.secondary {
+      background: var(--accent-orange);
+      box-shadow: 0 4px 10px rgba(234, 88, 12, 0.2);
+    }
+
+    .sim-btn.neutral {
+      background: #e2e8f0;
+      color: var(--text-main);
+      box-shadow: none;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-container">
+    
+    <header>
+      <div class="brand">
+        <h1>🌿 SunStride Smart Station</h1>
+        <p>Eco-Harvested IoT Transit Telemetry Hub</p>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>LIVE TELEMETRY</span>
+      </div>
+    </header>
+
+    <div class="bus-card" id="busCard">
+      <div class="platform-header">
+        <div class="bus-status-title">Smart Transit Platform</div>
+        <div class="sensor-distance">Bay Sensor: <span id="distanceText">18.5</span> cm</div>
+      </div>
+
+      <div class="track-container">
+        <div class="visual-bus" id="visualBus">🚌</div>
+      </div>
+
+      <div class="bus-info-group">
+        <div class="bus-main-display" id="busStatusText">STATION CLEAR</div>
+        <div class="bus-id-badge" id="busIdText">Waiting for Incoming Bus...</div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      
+      <div class="metric-card solar">
+        <div class="metric-header">
+          <span>Solar Panel Power</span>
+          <span>☀️</span>
+        </div>
+        <div class="metric-value"><span id="solarVal">280</span> <span style="font-size:1.1rem">mW</span></div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="solarBar" style="width: 70%; background: var(--accent-orange);"></div>
+        </div>
+      </div>
+
+      <div class="metric-card piezo">
+        <div class="metric-header">
+          <span>Piezo Footstep Power</span>
+          <span>👟</span>
+        </div>
+        <div class="metric-value"><span id="piezoVal">65</span> <span style="font-size:1.1rem">mW</span></div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="piezoBar" style="width: 25%; background: var(--accent-piezo);"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="total-energy-card">
+      <div>
+        <div class="total-energy-title">Cumulative Station Energy Consumed</div>
+        <div class="total-energy-sub">Real-Time Grid Telemetry (Since Boot)</div>
+      </div>
+      <div class="total-energy-value">
+        <span id="totalEnergyVal">1420.8</span> <span style="font-size: 1.1rem;">mWh</span>
+      </div>
+    </div>
+
+    <div class="sim-panel">
+      <div class="sim-title">Live Judge Demonstration Controls</div>
+      <button class="sim-btn" onclick="simulateBusArrival()">Simulate Bus Arrival (&lt; 8 cm)</button>
+      <button class="sim-btn neutral" onclick="simulateBusDeparture()">Clear Bay (&gt; 8 cm)</button>
+      <button class="sim-btn secondary" onclick="pulsePiezo()">Simulate Footstep Pulse</button>
+    </div>
+
+  </div>
+
+  <script>
+    // System Variables
+    let solarPower = 280;
+    let piezoPower = 65;
+    let cumulativeEnergy = 1420.8;
+
+    // DOM Elements
+    const busCard = document.getElementById('busCard');
+    const visualBus = document.getElementById('visualBus');
+    const busStatusText = document.getElementById('busStatusText');
+    const busIdText = document.getElementById('busIdText');
+    const distanceText = document.getElementById('distanceText');
+    const solarVal = document.getElementById('solarVal');
+    const piezoVal = document.getElementById('piezoVal');
+    const solarBar = document.getElementById('solarBar');
+    const piezoBar = document.getElementById('piezoBar');
+    const totalEnergyVal = document.getElementById('totalEnergyVal');
+
+    // Simulate Bus Arrival (< 8cm)
+    function simulateBusArrival() {
+      const distance = (Math.random() * 4 + 2).toFixed(1); // 2.0cm - 6.0cm
+      const randomBusNum = Math.floor(Math.random() * 899) + 100;
+      
+      distanceText.innerText = distance;
+      busStatusText.innerText = "BUS ARRIVED!";
+      busStatusText.classList.add('active');
+      busIdText.innerText = `Route #JNV-EXPRESS-${randomBusNum}`;
+      
+      // Animations
+      busCard.classList.add('arrived');
+      visualBus.classList.add('in-station');
+    }
+
+    // Simulate Bus Departure (> 8cm)
+    function simulateBusDeparture() {
+      const distance = (Math.random() * 12 + 14).toFixed(1); // 14.0cm - 26.0cm
+      
+      distanceText.innerText = distance;
+      busStatusText.innerText = "STATION CLEAR";
+      busStatusText.classList.remove('active');
+      busIdText.innerText = "Waiting for Incoming Bus...";
+      
+      // Animations
+      busCard.classList.remove('arrived');
+      visualBus.classList.remove('in-station');
+    }
+
+    // Simulate Footstep Surge
+    function pulsePiezo() {
+      piezoPower = Math.floor(Math.random() * 80) + 140;
+      piezoVal.innerText = piezoPower;
+      piezoBar.style.width = Math.min((piezoPower / 250) * 100, 100) + '%';
+      
+      setTimeout(() => {
+        piezoPower = 45;
+        piezoVal.innerText = piezoPower;
+        piezoBar.style.width = '20%';
+      }, 1000);
+    }
+
+    // Auto energy counter ticker
+    setInterval(() => {
+      solarPower = Math.floor(270 + Math.sin(Date.now() / 800) * 20);
+      solarVal.innerText = solarPower;
+      solarBar.style.width = Math.min((solarPower / 400) * 100, 100) + '%';
+
+      cumulativeEnergy += (solarPower + piezoPower) * 0.00005;
+      totalEnergyVal.innerText = cumulativeEnergy.toFixed(1);
+    }, 1000);
+  </script>
+</body>
+</html>
